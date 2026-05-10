@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traveloop | Full Application</title>
+    <style>
+        /* ================= SHARED BASE & NAVIGATION ================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            background-color: #1E293B; /* Fallback base */
+        }
+
+        /* Screen Management */
+        .app-view {
+            display: none; /* Hides the non-active screens completely */
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        .app-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Universal Back Button */
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-2px);
+        }
+
+        /* Toast Component */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #A855F7;
+            color: white;
+            padding: 1rem 1.2rem;
+            border-radius: 12px;
+            display: none;
+            z-index: 9999;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        /* ================= 1. AUTHENTICATION PAGE CSS ================= */
+        #auth-page {
+            --primary: #A855F7; --primary-dark: #9333EA; --text-main: #1E293B;
+            --bg-accent: #E9D5FF; --bg-main: #F8FAFC; --bg-card: #FFFFFF;
+            --text-muted: #64748B; --border-color: #E2E8F0;
+            --border-radius: 12px; --border-radius-sm: 8px;
+            --shadow-md: 0 4px 6px -1px rgba(30, 41, 59, 0.1);
+            --shadow-hover: 0 10px 15px -3px rgba(168, 85, 247, 0.25);
+            background-color: var(--bg-main); color: var(--text-main); min-height: 100vh;
+        }
+
+        #auth-page .btn-primary { background-color: var(--primary); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: var(--border-radius-sm); font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; justify-content: center; align-items: center; width: 100%; }
+        #auth-page .btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        #auth-page .input-field { width: 100%; padding: 0.8rem 1rem; border: 2px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 1rem; color: var(--text-main); outline: none; background-color: var(--bg-card); transition: 0.2s;}
+        #auth-page .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--bg-accent); }
+        #auth-page .card { background-color: var(--bg-card); border-radius: var(--border-radius); box-shadow: var(--shadow-md); padding: 2rem; }
+        #auth-page .auth-wrapper { display: flex; min-height: 100vh; justify-content: flex-start; align-items: center; background: linear-gradient(rgba(147, 51, 234, 0.4), rgba(30, 41, 59, 0.8)), url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80') right center / cover no-repeat; }
+        #auth-page .auth-form-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem; background-color: rgba(248, 250, 252, 0.95); max-width: 50%; height: 100vh; }
+        #auth-page .auth-card { width: 100%; max-width: 400px; }
+        #auth-page .logo { font-size: 2rem; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 2rem; display: block; text-decoration: none; letter-spacing: -0.5px; }
+        #auth-page .form-group { margin-bottom: 1.5rem; }
+        #auth-page .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+        #auth-page .auth-links { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; font-size: 0.9rem; }
+        #auth-page .auth-links.center { justify-content: center; }
+        #auth-page .auth-links a { color: var(--primary); text-decoration: none; font-weight: 600; }
+        #auth-page .auth-links a:hover { color: var(--primary-dark); }
+        @media (max-width: 767px) { #auth-page .auth-form-container { max-width: 100%; background-color: rgba(248, 250, 252, 0.99); } }
+
+        /* ================= 2. MAIN DASHBOARD CSS ================= */
+        #main-page {
+            --primary: #A855F7; --primary-dark: #9333EA; --primary-light: #E9D5FF;
+            --bg-main: #1E293B; --bg-card: #0F172A; --text-main: #F8FAFC; --text-muted: #94A3B8;
+            --border-color: #334155; --border-radius: 16px; --glow-primary: rgba(168, 85, 247, 0.4);
+            --glass-bg: rgba(15, 23, 42, 0.75);
+            background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding-bottom: 90px;
+        }
+        #main-page header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); position: sticky; top: 0; z-index: 100; }
+        #main-page .logo { font-size: 1.75rem; font-weight: 800; background: linear-gradient(135deg, var(--primary-light), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-decoration: none; cursor: pointer; margin-bottom: 0;}
+        #main-page .nav-links { display: flex; align-items: center; gap: 2rem; }
+        #main-page .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 1rem; font-weight: 600; cursor: pointer; position: relative;}
+        #main-page .nav-links a:hover, #main-page .nav-links .active { color: var(--primary-light); }
+        #main-page .nav-links a::after { content: ""; position: absolute; left: 0; bottom: -6px; width: 0%; height: 2px; background: var(--primary); transition: width 0.3s ease; border-radius: 2px; }
+        #main-page .nav-links a:hover::after, #main-page .nav-links .active::after { width: 100%; }
+        #main-page .profile-icon { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(147, 51, 234, 0.4)); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; color: var(--primary-light); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        #main-page .profile-icon:hover { transform: scale(1.05); box-shadow: 0 0 20px var(--glow-primary); background: var(--primary); color: white; }
+        #main-page .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        #main-page .banner { width: 100%; height: 320px; border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center; margin-bottom: 2.5rem; background-size: cover; background-position: center; position: relative; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        #main-page .banner h1 { color: white; font-size: 3rem; font-weight: 800; z-index: 2; }
+        #main-page .action-bar { display: flex; justify-content: space-between; gap: 1.5rem; margin-bottom: 3rem; flex-wrap: wrap; }
+        #main-page .search-container { flex-grow: 1; max-width: 500px; position: relative; }
+        #main-page .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 20px; height: 20px; }
+        #main-page .search-bar { width: 100%; padding: 1rem 1rem 1rem 3rem; background-color: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-main); }
+        #main-page .filters { display: flex; gap: 1rem; }
+        #main-page .filter-btn { background-color: rgba(168, 85, 247, 0.1); color: var(--primary-light); border: 1px solid rgba(168, 85, 247, 0.2); padding: 0.75rem 1.5rem; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        #main-page .section-header { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; }
+        #main-page .section-line { flex-grow: 1; height: 2px; background: linear-gradient(to right, var(--primary), transparent); opacity: 0.4; }
+        #main-page .regions-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; margin-bottom: 4rem; }
+        #main-page .trips-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        #main-page .region-card, #main-page .trip-card { position: relative; background-color: var(--bg-card); border-radius: var(--border-radius); overflow: hidden; box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); cursor: pointer;}
+        #main-page .region-card { aspect-ratio: 1 / 1; } #main-page .trip-card { aspect-ratio: 2 / 3; }
+        #main-page .card-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-size: cover; background-position: center; transition: transform 0.6s; }
+        #main-page .region-card:hover .card-bg, #main-page .trip-card:hover .card-bg { transform: scale(1.08); }
+        #main-page .card-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.6) 60%, transparent 100%); color: white; font-weight: 700; font-size: 1.1rem; }
+        #main-page .fab-container { position: fixed; bottom: 2.5rem; right: 2.5rem; z-index: 1000; }
+        #main-page .fab-button { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 1rem 2rem; border-radius: 40px; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; }
+        @media (max-width: 600px) { #main-page .regions-grid { grid-template-columns: repeat(2, 1fr); } #main-page .trips-grid { grid-template-columns: 1fr; } }
+
+        /* ================= 3. TRIP MANAGER CSS ================= */
+        #trip-page {
+            --bg-deep: #1E293B; --accent-light: #E9D5FF; --primary: #A855F7; --primary-dark: #9333EA;
+            --card-bg: rgba(255, 255, 255, 0.03); --border: rgba(233, 213, 255, 0.2); --text-main: #F8FAFC;
+            background-color: var(--bg-deep); color: var(--text-main); padding: 40px 20px; min-height: 100vh;
+            background-image: radial-gradient(circle at 0% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 25%);
+        }
+        #trip-page.active { display: flex; justify-content: center; }
+        #trip-page .trip-wrapper { width: 100%; display: flex; justify-content: center; }
+        #trip-page .container { width: 100%; max-width: 650px; background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 24px; display: flex; flex-direction: column; max-height: 90vh; margin: auto; }
+        #trip-page header { display: flex; justify-content: space-between; align-items: center; padding: 25px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        #trip-page .logo { font-size: 1.5rem; font-weight:800; cursor:pointer; margin-bottom: 0; background: linear-gradient(to right, var(--accent-light), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #trip-page .avatar { width: 35px; height: 35px; background: var(--primary); border-radius: 12px; }
+        #trip-page .form-section { padding: 25px; border-bottom: 1px solid var(--border); }
+        #trip-page .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        #trip-page .input-group { display: flex; flex-direction: column; gap: 8px; }
+        #trip-page input { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: #fff; font-family: inherit;}
+        #trip-page .btn-add { width: 100%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 14px; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; transition:0.2s;}
+        #trip-page .btn-add:hover { transform: translateY(-2px); }
+        #trip-page .list-section { padding: 25px; overflow-y: auto; flex-grow: 1; }
+        #trip-page .trip-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        #trip-page .trip-meta { font-size: 0.75rem; color: var(--primary); background: rgba(168, 85, 247, 0.1); padding: 4px 10px; border-radius: 20px; }
+        #trip-page .actions { display: flex; gap: 8px; }
+        #trip-page .btn-action { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-main); padding: 8px 12px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        #trip-page .btn-action:hover { background: rgba(255,255,255,0.1); }
+
+        /* ================= 4. ITINERARY BUILDER CSS ================= */
+        #itinerary-page {
+            --primary: #A855F7; --primary-dark: #9333EA; --primary-light: #E9D5FF;
+            --bg-main: #0F172A; --bg-card: #111827; --text-main: #F8FAFC; --text-muted: #94A3B8; --border: rgba(255, 255, 255, 0.08);
+            background: var(--bg-main); color: var(--text-main); min-height: 100vh;
+        }
+        #itinerary-page header { position: sticky; top: 0; z-index: 1000; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border); }
+        #itinerary-page .logo { font-size: 1.8rem; margin-bottom:0; font-weight: bold; background: linear-gradient(135deg, var(--primary-light), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        #itinerary-page .nav-links { display: flex; gap: 1.5rem; }
+        #itinerary-page .nav-links a { color: var(--text-muted); cursor: pointer; text-decoration: none;}
+        #itinerary-page .nav-links a:hover, #itinerary-page .nav-links .active { color: var(--primary-light); }
+        #itinerary-page .profile { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: rgba(168, 85, 247, 0.15); border: 2px solid var(--primary); }
+        #itinerary-page .container { max-width: 1400px; margin: auto; padding: 2rem; }
+        #itinerary-page .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+        #itinerary-page .primary-btn { padding: 1rem 1.4rem; border-radius: 14px; color: white; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; cursor: pointer;}
+        #itinerary-page .trip-summary { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); padding: 1.5rem; border-radius: 22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        #itinerary-page .stat-pill { background: rgba(255, 255, 255, 0.08); color: var(--primary-light); padding: 0.8rem 1rem; border-radius: 999px; }
+        #itinerary-page .itinerary-wrapper { display: flex; flex-direction: column; gap: 2rem; }
+        #itinerary-page .stop-card { background: var(--bg-card); border-radius: 24px; overflow: hidden; border: 1px solid var(--border); }
+        #itinerary-page .stop-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid var(--border); }
+        #itinerary-page .stop-left { display: flex; align-items: center; gap: 1rem; }
+        #itinerary-page .drag-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; justify-content: center; align-items: center; background: rgba(168, 85, 247, 0.15); }
+        #itinerary-page .stop-actions { display: flex; gap: 0.8rem; }
+        #itinerary-page .action-btn { background: rgba(255, 255, 255, 0.08); color: white; padding: 0.8rem 1rem; border-radius: 12px; border: none; cursor: pointer;}
+        #itinerary-page .stop-body { padding: 1.5rem; }
+        #itinerary-page .trip-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        #itinerary-page .input-group input, #itinerary-page .input-group select { width: 100%; padding: 1rem; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.1); background: #0B1220; color: white; }
+        #itinerary-page .activities-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        #itinerary-page .add-activity-btn { background: rgba(168, 85, 247, 0.15); color: var(--primary-light); padding: 0.8rem 1rem; border-radius: 12px; border: none; cursor: pointer;}
+        #itinerary-page .activities-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
+        #itinerary-page .activity-card { background: rgba(255, 255, 255, 0.03); border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        #itinerary-page .activity-image { height: 180px; background-size: cover; background-position: center; }
+        #itinerary-page .activity-content { padding: 1rem; }
+        #itinerary-page .remove-btn { width: 100%; padding: 0.8rem; border-radius: 12px; background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border:none; cursor: pointer;}
+        #itinerary-page .save-area { text-align: center; margin-top: 2rem; }
+
+        /* ================= 5. ITINERARY VIEW & PACKING CSS ================= */
+        #itinerary-view-page {
+            --primary: #A855F7; --primary-dark: #9333EA; --primary-light: #E9D5FF;
+            --bg-main: #1E293B; --bg-card: #0F172A; --text-main: #F8FAFC; --text-muted: #94A3B8; --glass-bg: rgba(15, 23, 42, 0.78);
+            background: var(--bg-main); color: var(--text-main); min-height: 100vh;
+        }
+        #itinerary-view-page header { position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: var(--glass-bg); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        #itinerary-view-page .logo { font-size: 1.8rem; margin-bottom: 0; font-weight: bold; text-decoration: none; background: linear-gradient(135deg, var(--primary-light), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer;}
+        #itinerary-view-page .nav-links { display: flex; gap: 1.5rem; }
+        #itinerary-view-page .nav-links a { text-decoration: none; color: var(--text-muted); transition: 0.3s; cursor: pointer; }
+        #itinerary-view-page .nav-links a:hover, #itinerary-view-page .nav-links .active { color: var(--primary-light); }
+        #itinerary-view-page .profile-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: rgba(168, 85, 247, 0.15); border: 2px solid var(--primary); }
+        #itinerary-view-page .container { max-width: 1400px; margin: auto; padding: 2rem; }
+        #itinerary-view-page .breadcrumb { color: var(--text-muted); margin-bottom: 1rem; }
+        #itinerary-view-page .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        #itinerary-view-page .page-header h1 { font-size: 2.7rem; margin-bottom: 0.5rem; }
+        #itinerary-view-page .page-header p { color: var(--text-muted); line-height: 1.6; max-width: 700px; }
+        
+        #itinerary-view-page .toggle-buttons { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;}
+        #itinerary-view-page .toggle-btn, #itinerary-view-page .action-btn { border: none; cursor: pointer; padding: 0.9rem 1.2rem; border-radius: 12px; font-weight: bold; transition: 0.3s; font-size: 0.95rem; }
+        #itinerary-view-page .toggle-btn { background: rgba(255,255,255,0.08); color: white; }
+        #itinerary-view-page .toggle-btn.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 4px 10px rgba(168, 85, 247, 0.2); }
+        #itinerary-view-page .action-btn { background: rgba(168, 85, 247, 0.15); color: var(--primary-light); }
+        #itinerary-view-page .action-btn:hover { transform: translateY(-2px); }
+        #itinerary-view-page .primary-btn { padding: 0.9rem 1.4rem; border-radius: 12px; color: white; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; cursor: pointer; font-weight: bold; transition: transform 0.2s;}
+        #itinerary-view-page .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);}
+
+        #itinerary-view-page .trip-summary { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 20px; padding: 1.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        #itinerary-view-page .trip-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
+        #itinerary-view-page .stat-pill { background: rgba(255,255,255,0.08); padding: 0.8rem 1rem; border-radius: 999px; color: var(--primary-light); }
+
+        #itinerary-view-page .timeline-view { display: flex; flex-direction: column; gap: 2rem; }
+        #itinerary-view-page .day-card { background: var(--bg-card); border-radius: 24px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        #itinerary-view-page .day-header { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.03); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        #itinerary-view-page .day-title h2 { margin-bottom: 0.4rem; }
+        #itinerary-view-page .day-title p { color: var(--text-muted); }
+        #itinerary-view-page .city-badge { background: rgba(168, 85, 247, 0.15); color: var(--primary-light); padding: 0.8rem 1rem; border-radius: 999px; font-weight: bold; }
+        #itinerary-view-page .activities-wrapper { padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        #itinerary-view-page .activity-block { background: rgba(255,255,255,0.03); border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+        #itinerary-view-page .activity-block:hover { transform: translateY(-5px); }
+        #itinerary-view-page .activity-image { height: 180px; background-size: cover; background-position: center; }
+        #itinerary-view-page .activity-content { padding: 1rem; }
+        #itinerary-view-page .activity-content h3 { margin-bottom: 0.7rem; }
+        #itinerary-view-page .activity-content p { color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+        #itinerary-view-page .activity-meta { display: flex; justify-content: space-between; color: var(--text-muted); margin-bottom: 1rem; }
+        #itinerary-view-page .time-pill { background: rgba(168, 85, 247, 0.15); color: var(--primary-light); padding: 0.5rem 0.8rem; border-radius: 999px; width: fit-content; font-size: 0.9rem; margin-bottom: 1rem; }
+
+        #itinerary-view-page .calendar-view { display: none; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        #itinerary-view-page .calendar-card { background: var(--bg-card); border-radius: 22px; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05); }
+        #itinerary-view-page .calendar-card h3 { margin-bottom: 0.5rem; }
+        #itinerary-view-page .calendar-card p { color: var(--text-muted); margin-bottom: 1rem; }
+        #itinerary-view-page .mini-activity { background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 14px; margin-bottom: 1rem; }
+        #itinerary-view-page .mini-activity strong { display: block; margin-bottom: 0.5rem; }
+        #itinerary-view-page .mini-activity span { color: var(--text-muted); }
+
+        /* PACKING CHECKLIST STYLES (Scoped) */
+        #itinerary-view-page .packing-view { display: none; flex-direction: column; background: var(--bg-card); border-radius: 24px; padding: 2rem; border: 1px solid rgba(255,255,255,0.05); }
+        #itinerary-view-page .packing-view h2 { margin-bottom: 0.5rem; color: white; text-align: center; font-size: 2rem;}
+        #itinerary-view-page .packing-view p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 2rem; }
+        #itinerary-view-page .packing-view .input-group { display: flex; gap: 0.8rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        #itinerary-view-page .packing-view input[type="text"], #itinerary-view-page .packing-view select { padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); background-color: #0B1220; color: white; font-size: 1rem; outline: none; }
+        #itinerary-view-page .packing-view input[type="text"] { flex: 2; min-width: 200px; }
+        #itinerary-view-page .packing-view select { flex: 1; min-width: 130px; }
+        #itinerary-view-page .packing-view select option { background: white; color: black; }
+        #itinerary-view-page .packing-view button.add-btn { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: bold; cursor: pointer; transition: transform 0.2s;}
+        #itinerary-view-page .packing-view button.add-btn:hover { transform: translateY(-2px); }
+        #itinerary-view-page .packing-view .filters { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+        #itinerary-view-page .packing-view .filter-pill { background: rgba(255,255,255,0.08); color: var(--text-muted); padding: 0.6rem 1.2rem; font-size: 0.9rem; border: none; border-radius: 20px; white-space: nowrap; cursor: pointer; font-weight: bold;}
+        #itinerary-view-page .packing-view .filter-pill.active { background: var(--primary); color: white; }
+        #itinerary-view-page .packing-view .checklist { list-style: none; margin-bottom: 2rem; max-height: 500px; overflow-y: auto; }
+        #itinerary-view-page .packing-view .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 1.2rem; background: rgba(255,255,255,0.03); margin-bottom: 0.8rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: opacity 0.2s; }
+        #itinerary-view-page .packing-view .checklist-item.packed .item-text { text-decoration: line-through; color: var(--text-muted); }
+        #itinerary-view-page .packing-view .item-left { display: flex; align-items: center; gap: 1.2rem; }
+        #itinerary-view-page .packing-view .item-left input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary); }
+        #itinerary-view-page .packing-view .item-text { font-size: 1.1rem; word-break: break-word; font-weight: 500;}
+        #itinerary-view-page .packing-view .badge { font-size: 0.75rem; padding: 0.3rem 0.8rem; border-radius: 12px; font-weight: bold; color: white; margin-left: 0.8rem; display: inline-block; }
+        #itinerary-view-page .packing-view .badge.clothing { background-color: #10B981; }
+        #itinerary-view-page .packing-view .badge.documents { background-color: #F59E0B; }
+        #itinerary-view-page .packing-view .badge.electronics { background-color: #8B5CF6; }
+        #itinerary-view-page .packing-view .badge.other { background-color: #64748B; }
+        #itinerary-view-page .packing-view .delete-btn { background: transparent; color: var(--text-muted); border: none; padding: 0.5rem; font-size: 1.4rem; cursor: pointer; }
+        #itinerary-view-page .packing-view .delete-btn:hover { color: #EF4444; }
+        #itinerary-view-page .packing-view .footer-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem; }
+        #itinerary-view-page .packing-view .reset-btn { background: transparent; color: #EF4444; border: 1px solid #EF4444; padding: 0.6rem 1.2rem; border-radius: 10px; cursor: pointer; font-weight: bold;}
+        #itinerary-view-page .packing-view .reset-btn:hover { background: #EF4444; color: white; }
+
+        /* ================= 6. PROFILE PAGE CSS ================= */
+        #profile-page {
+            --purple-light: #E9D5FF;
+            --purple-main: #A855F7;
+            --purple-dark: #9333EA;
+            --bg-body: #1E293B;
+            --bg-card: #111827;
+            --white: #ffffff;
+            --text-on-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --danger: #ef4444;
+            --success: #10b981;
+            
+            background-color: var(--bg-body);
+            color: var(--text-on-dark);
+            min-height: 100vh;
+        }
+
+        #profile-page header { position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        #profile-page .logo { font-size: 1.8rem; font-weight: bold; text-decoration: none; background: linear-gradient(135deg, var(--purple-light), var(--purple-main)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer;}
+        #profile-page .nav-links { display: flex; gap: 1.5rem; }
+        #profile-page .nav-links a { text-decoration: none; color: var(--text-muted); transition: 0.3s; cursor: pointer; }
+        #profile-page .nav-links a:hover, #profile-page .nav-links .active { color: var(--purple-light); }
+        #profile-page .profile-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: rgba(168, 85, 247, 0.15); border: 2px solid var(--purple-main); }
+
+        #profile-page .settings-container { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;}
+        #profile-page .settings-header { margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 2px solid var(--purple-main); }
+        #profile-page .settings-header h1 { font-size: 2.5rem; color: var(--white); font-weight: 800; letter-spacing: -0.025em; }
+        #profile-page .settings-header p { color: var(--text-muted); font-size: 1.1rem; }
+        #profile-page .settings-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+        @media (min-width: 768px) { #profile-page .settings-grid { grid-template-columns: 3fr 2fr; } }
+        #profile-page .settings-card { background: var(--bg-card); border-radius: 20px; padding: 2.5rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); }
+        #profile-page .settings-card h2 { font-size: 1.5rem; margin-bottom: 2rem; color: var(--purple-light); display: flex; align-items: center; gap: 0.5rem; }
+        #profile-page .profile-photo-section { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-bottom: 2.5rem; padding: 1.5rem; background: rgba(168, 85, 247, 0.1); border-radius: 15px; border: 1px solid rgba(168, 85, 247, 0.2); }
+        @media (min-width: 480px) { #profile-page .profile-photo-section { flex-direction: row; } }
+        #profile-page .profile-photo { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid var(--purple-main); box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.4); }
+        #profile-page .form-group { margin-bottom: 1.5rem; }
+        #profile-page .form-group label { display: block; margin-bottom: 0.6rem; font-weight: 600; color: var(--purple-light); }
+        #profile-page .form-group input, #profile-page .form-group select { width: 100%; padding: 0.9rem; background: #1f2937; border: 2px solid var(--border-color); border-radius: 12px; font-size: 1rem; color: var(--white); transition: all 0.3s ease; }
+        #profile-page .form-group input:focus { outline: none; border-color: var(--purple-main); background: #111827; }
+        #profile-page .btn-primary { background-color: var(--purple-main); color: var(--white); padding: 1rem 2rem; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s ease; }
+        #profile-page .btn-primary:hover { background-color: var(--purple-dark); transform: translateY(-2px); }
+        #profile-page .btn-secondary { background-color: rgba(233, 213, 255, 0.1); color: var(--purple-light); border: 1px solid var(--purple-main); padding: 0.7rem 1.4rem; border-radius: 10px; cursor: pointer; }
+        #profile-page .destination-item { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; background-color: #1f2937; border-radius: 12px; margin-bottom: 1rem; border: 1px solid var(--border-color); border-left: 6px solid var(--purple-main); }
+        #profile-page .destination-item span { font-weight: 600; color: var(--white); }
+        #profile-page .remove-dest { color: var(--text-muted); background: rgba(255, 255, 255, 0.05); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
+        #profile-page .remove-dest:hover { background-color: var(--danger); color: var(--white); }
+        #profile-page .danger-zone { background-color: rgba(239, 68, 68, 0.05); border: 2px dashed #7f1d1d; }
+
+    </style>
+</head>
+<body>
+
+    <!-- ================= 1. LOGIN / SIGNUP PAGE ================= -->
+    <div id="auth-page" class="app-view active">
+        <div class="auth-wrapper">
+            <div class="auth-form-container">
+                <div class="auth-card card">
+                    <a class="logo">Traveloop</a>
+                    
+                    <div id="login-view" class="fade-in">
+                        <h2 style="text-align: center; margin-bottom: 0.5rem;">Welcome back</h2>
+                        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Enter your details to access your trips.</p>
+
+                        <form onsubmit="handleAuth(event)">
+                            <div class="form-group">
+                                <label for="login-email">Email</label>
+                                <input type="email" id="login-email" class="input-field" placeholder="alex@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="login-password">Password</label>
+                                <input type="password" id="login-password" class="input-field" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Sign In</button>
+                        </form>
+                        <div class="auth-links">
+                            <span style="color: var(--text-muted);">New here? <a href="javascript:void(0);" onclick="toggleAuthView()">Create account</a></span>
+                            <a href="#">Forgot password?</a>
+                        </div>
+                    </div>
+
+                    <div id="signup-view" class="fade-in" style="display: none;">
+                        <h2 style="text-align: center; margin-bottom: 0.5rem;">Create an account</h2>
+                        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Join us to start planning your next adventure.</p>
+
+                        <form onsubmit="handleAuth(event)">
+                            <div class="form-group">
+                                <label for="signup-name">Full Name</label>
+                                <input type="text" id="signup-name" class="input-field" placeholder="Alex Johnson" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signup-email">Email</label>
+                                <input type="email" id="signup-email" class="input-field" placeholder="alex@example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="signup-password">Password</label>
+                                <input type="password" id="signup-password" class="input-field" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Sign Up</button>
+                        </form>
+                        <div class="auth-links center">
+                            <span style="color: var(--text-muted);">Already have an account? <a href="javascript:void(0);" onclick="toggleAuthView()">Log in</a></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= 2. MAIN DASHBOARD PAGE ================= -->
+    <div id="main-page" class="app-view">
+        <header>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="back-btn" onclick="goBack()" style="display:none;">🔙 Back</button>
+                <a onclick="navTo('main-page')" class="logo">Traveloop</a>
+            </div>
+            <nav class="nav-links">
+                <a class="active">Dashboard</a>
+                <a onclick="navTo('trip-page')">My Trips</a>
+                <a onclick="navTo('profile-page')">Profile</a>
+            </nav>
+            <div class="profile-icon" onclick="navTo('profile-page')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="banner" style="background-image: linear-gradient(rgba(15, 23, 42, 0.3), rgba(15, 23, 42, 0.8)), url('https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80');">
+                <h1>Where to next?</h1>
+            </div>
+
+            <div class="action-bar">
+                <div class="search-container">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" class="search-bar" placeholder="Search cities, activities, or trips...">
+                </div>
+                <div class="filters">
+                    <button class="filter-btn">Group by</button>
+                    <button class="filter-btn">Filter</button>
+                    <button class="filter-btn">Sort by...</button>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Top Regional Selections</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="regions-grid">
+                <div class="region-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=400&q=80');"></div><div class="card-overlay">Europe</div></div>
+                <div class="region-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=400&q=80');"></div><div class="card-overlay">Asia</div></div>
+                <div class="region-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=400&q=80');"></div><div class="card-overlay">Africa</div></div>
+                <div class="region-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1485738422979-f5c462d49f74?auto=format&fit=crop&w=400&q=80');"></div><div class="card-overlay">Americas</div></div>
+                <div class="region-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1523482580672-f109ba8cb9be?auto=format&fit=crop&w=400&q=80');"></div><div class="card-overlay">Oceania</div></div>
+            </div>
+
+            <div class="section-header">
+                <h2>Previous Trips</h2>
+                <div class="section-line"></div>
+            </div>
+
+            <div class="trips-grid">
+                <div class="trip-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=500&q=80');"></div><div class="card-overlay">Paris Getaway</div></div>
+                <div class="trip-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?auto=format&fit=crop&w=500&q=80');"></div><div class="card-overlay">Tokyo Adventure</div></div>
+                <div class="trip-card"><div class="card-bg" style="background-image: url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=500&q=80');"></div><div class="card-overlay">Kenya Safari</div></div>
+            </div>
+        </div>
+
+        <div class="fab-container">
+            <button class="fab-button" onclick="navTo('trip-page')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Plan a trip
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ================= 3. TRIP MANAGER PAGE ================= -->
+    <div id="trip-page" class="app-view">
+        <div class="trip-wrapper">
+            <div class="container">
+                <header>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <button class="back-btn" onclick="goBack()">🔙 Back</button>
+                        <h1 class="logo" onclick="navTo('main-page')">Traveloop</h1>
+                    </div>
+                    <div class="avatar" onclick="navTo('profile-page')" style="cursor: pointer;"></div>
+                </header>
+
+                <section class="form-section">
+                    <h2>Plan a new trip</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Destination</label>
+                            <input type="text" id="dest" placeholder="e.g. Kyoto, Japan">
+                        </div>
+                        <div class="input-group">
+                            <label>Trip Name</label>
+                            <input type="text" id="tripName" placeholder="e.g. Cherry Blossom Tour">
+                        </div>
+                        <div class="input-group">
+                            <label>Start Date</label>
+                            <input type="date" id="sDate">
+                        </div>
+                        <div class="input-group">
+                            <label>End Date</label>
+                            <input type="date" id="eDate">
+                        </div>
+                    </div>
+                    <button class="btn-add" onclick="addTrip()">Add to My Trips</button>
+                </section>
+
+                <section class="list-section" id="scrollContainer">
+                    <h3>Upcoming Explorations</h3>
+                    <div id="tripList"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= 4. INDIAN ITINERARY BUILDER ================= -->
+    <div id="itinerary-page" class="app-view">
+        <header>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="back-btn" onclick="goBack()">🔙 Back</button>
+                <a onclick="navTo('main-page')" class="logo">Traveloop</a>
+            </div>
+            <nav class="nav-links">
+                <a onclick="navTo('main-page')">Dashboard</a>
+                <a class="active">Create Trip</a>
+                <a onclick="navTo('trip-page')">My Trips</a>
+                <a onclick="navTo('profile-page')">Profile</a>
+            </nav>
+            <div class="profile" onclick="navTo('profile-page')" style="cursor: pointer;">👤</div>
+        </header>
+
+        <div class="container">
+            <div class="breadcrumb">
+                Dashboard › Create Trip › Itinerary Builder
+            </div>
+
+            <div class="page-header">
+                <div>
+                    <h1>Build Your India Trip</h1>
+                    <p>Create beautiful India travel itineraries with cities, dates, and activities.</p>
+                </div>
+                <button class="primary-btn" id="addStopBtn">+ Add Stop</button>
+            </div>
+
+            <div class="trip-summary">
+                <div>
+                    <h3 id="tripTitle">Incredible India Journey</h3>
+                    <p id="tripInfo">2 Cities • 2 Activities Planned</p>
+                </div>
+                <div class="trip-stats">
+                    <div class="stat-pill">Budget ₹75,000</div>
+                    <div class="stat-pill">Flexible Dates</div>
+                    <div class="stat-pill">Adventure Trip</div>
+                </div>
+            </div>
+
+            <div class="itinerary-wrapper" id="itineraryWrapper">
+                <!-- Stops injected via JS -->
+            </div>
+
+            <div class="save-area">
+                <button class="primary-btn" id="saveTripBtn">Save Trip</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= 5. ITINERARY VIEW PAGE (With Packing List) ================= -->
+    <div id="itinerary-view-page" class="app-view">
+        <header>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="back-btn" onclick="goBack()">🔙 Back</button>
+                <a onclick="navTo('main-page')" class="logo">Traveloop</a>
+            </div>
+            <nav class="nav-links">
+                <a onclick="navTo('main-page')">Dashboard</a>
+                <a onclick="navTo('itinerary-page')">Create Trip</a>
+                <a class="active">Itinerary View</a>
+                <a onclick="navTo('profile-page')">Profile</a>
+            </nav>
+            <div class="profile-icon" onclick="navTo('profile-page')" style="cursor: pointer;">👤</div>
+        </header>
+
+        <div class="container">
+            <div class="breadcrumb">
+                Dashboard › My Trips › India Itinerary
+            </div>
+
+            <div class="page-header">
+                <div>
+                    <h1>Incredible India Journey</h1>
+                    <p>Review your India trip itinerary with city timelines, activity schedules, travel cost and calendar view.</p>
+                </div>
+                <div class="toggle-buttons">
+                    <button class="toggle-btn active" id="timelineBtn">Timeline</button>
+                    <button class="toggle-btn" id="calendarBtn">Calendar</button>
+                    <!-- INTEGRATED PACKING BUTTON -->
+                    <button class="toggle-btn" id="packingBtn">🎒 Packing</button>
+                    
+                    <button class="action-btn" id="downloadBtn">⬇️ Download</button>
+                    <!-- PUBLISH BUTTON -->
+                    <button class="primary-btn" id="publishBtn">🚀 Publish</button>
+                </div>
+            </div>
+
+            <div class="trip-summary">
+                <div>
+                    <h2>India Cultural Tour</h2>
+                    <p>Mumbai → Jaipur → Goa → Varanasi</p>
+                </div>
+                <div class="trip-stats">
+                    <div class="stat-pill">7 Days</div>
+                    <div class="stat-pill">9 Activities</div>
+                    <div class="stat-pill">Budget ₹75,000</div>
+                </div>
+            </div>
+
+            <!-- VIEW 1: TIMELINE -->
+            <div class="timeline-view" id="timelineView">
+                <!-- Timeline populated via JS -->
+            </div>
+
+            <!-- VIEW 2: CALENDAR -->
+            <div class="calendar-view" id="calendarView">
+                <!-- Calendar populated via JS -->
+            </div>
+
+            <!-- VIEW 3: PACKING CHECKLIST -->
+            <div class="packing-view" id="packingView">
+                <h2>🎒 Packing Checklist</h2>
+                <p class="subtitle">Stay organized and ensure nothing is forgotten for India.</p>
+
+                <div class="input-group">
+                    <input type="text" id="pack-item-name" placeholder="E.g., Passport, Jacket, Charger..." onkeypress="handlePackKeyPress(event)">
+                    <select id="pack-item-category">
+                        <option value="clothing">👕 Clothing</option>
+                        <option value="documents">📄 Documents</option>
+                        <option value="electronics">🔌 Electronics</option>
+                        <option value="other">🎒 Other</option>
+                    </select>
+                    <button class="add-btn" onclick="addPackItem()">Add Item</button>
+                </div>
+
+                <div class="filters" id="pack-filter-container">
+                    <button class="filter-pill active" onclick="setPackFilter('all', this)">All Items</button>
+                    <button class="filter-pill" onclick="setPackFilter('clothing', this)">Clothing</button>
+                    <button class="filter-pill" onclick="setPackFilter('documents', this)">Documents</button>
+                    <button class="filter-pill" onclick="setPackFilter('electronics', this)">Electronics</button>
+                </div>
+
+                <ul class="checklist" id="checklist-container">
+                    <!-- Packing items injected here -->
+                </ul>
+
+                <div class="footer-actions">
+                    <p id="progress-text" style="font-size: 0.95rem; color: var(--text-muted); font-weight: bold;">0 / 0 items packed</p>
+                    <button class="reset-btn" onclick="resetChecklist()">Reset for Re-use</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= 6. PROFILE SETTINGS PAGE ================= -->
+    <div id="profile-page" class="app-view">
+        <header>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="back-btn" onclick="goBack()">🔙 Back</button>
+                <a onclick="navTo('main-page')" class="logo">Traveloop</a>
+            </div>
+            <nav class="nav-links">
+                <a onclick="navTo('main-page')">Dashboard</a>
+                <a onclick="navTo('trip-page')">My Trips</a>
+                <a class="active">Profile</a>
+            </nav>
+            <div class="profile-icon">👤</div>
+        </header>
+
+        <div class="settings-container">
+            <div class="settings-header">
+                <h1>Account Settings</h1>
+                <p>Manage your profile, preferences, and saved locations.</p>
+            </div>
+
+            <div class="settings-grid">
+                <section class="settings-card">
+                    <h2>Personal Information</h2>
+                    <div class="profile-photo-section">
+                        <img id="profile-img" src="https://ui-avatars.com/api/?name=Alex+Traveler&background=A855F7&color=ffffff&size=150" alt="Profile" class="profile-photo">
+                        <div class="photo-actions">
+                            <label for="photo-upload" class="btn-secondary">Change Photo</label>
+                            <input type="file" id="photo-upload" hidden accept="image/*">
+                        </div>
+                    </div>
+
+                    <form id="settings-form" onsubmit="event.preventDefault(); showToast('Profile Updated!');">
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" value="Alex Traveler">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" value="alex@example.com">
+                        </div>
+                        <button type="submit" class="btn-primary" id="save-btn">Update Profile</button>
+                    </form>
+                </section>
+
+                <div class="right-column">
+                    <section class="settings-card" style="margin-bottom: 2rem;">
+                        <h2>Saved Locations</h2>
+                        <ul id="destinations-list" style="list-style: none;"></ul>
+                    </section>
+                    <section class="settings-card danger-zone">
+                        <h2 style="color: var(--danger);">Danger Zone</h2>
+                        <button class="btn-primary" style="background: var(--danger);" onclick="confirm('Are you sure you want to delete your account?');">Delete Account</button>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Shared Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // --- NAVIGATION & HISTORY LOGIC ---
+        let viewHistory = [];
+        let currentView = 'auth-page';
+
+        function navTo(pageId, isBack = false) {
+            // Push to history if we are moving forward to a new page
+            if (!isBack && currentView !== pageId && currentView !== 'auth-page') {
+                viewHistory.push(currentView);
+            }
+
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            document.getElementById(pageId).classList.add('active');
+            currentView = pageId;
+            
+            // Maintain intended background color based on the view
+            if(pageId === 'trip-page' || pageId === 'main-page' || pageId === 'itinerary-view-page' || pageId === 'profile-page') {
+                document.body.style.backgroundColor = '#1E293B';
+            } else if (pageId === 'itinerary-page') {
+                document.body.style.backgroundColor = '#0F172A';
+            } else {
+                document.body.style.backgroundColor = '#F8FAFC';
+            }
+            
+            updateBackButtonVisibility();
+            window.scrollTo(0, 0);
+        }
+
+        function goBack() {
+            if (viewHistory.length > 0) {
+                const previousPage = viewHistory.pop();
+                navTo(previousPage, true);
+            }
+        }
+
+        function updateBackButtonVisibility() {
+            const backBtns = document.querySelectorAll('.back-btn');
+            backBtns.forEach(btn => {
+                if (viewHistory.length === 0 || currentView === 'auth-page') {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = 'inline-flex';
+                }
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message; toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
+        // --- AUTH LOGIC ---
+        function toggleAuthView() {
+            const loginView = document.getElementById('login-view');
+            const signupView = document.getElementById('signup-view');
+            if (loginView.style.display !== 'none') {
+                loginView.style.display = 'none'; signupView.style.display = 'block';
+            } else {
+                signupView.style.display = 'none'; loginView.style.display = 'block';
+            }
+        }
+        function handleAuth(event) {
+            event.preventDefault(); 
+            viewHistory = []; // Clear history on fresh login
+            navTo('main-page');
+        }
+
+        // --- TRIP MANAGER LOGIC ---
+        let trips = [];
+        function renderTrips() {
+            const listContainer = document.getElementById('tripList');
+            if (trips.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state">Your itinerary is empty. Time to dream!</div>'; return;
+            }
+            listContainer.innerHTML = trips.map(trip => `
+                <div class="trip-card">
+                    <div class="trip-info">
+                        <h4>${trip.name}</h4><p>${trip.dest}</p>
+                        <div class="trip-meta">${formatDate(trip.start)} — ${formatDate(trip.end)} • ${trip.count} Activities</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-action btn-view" onclick="navTo('itinerary-page')">View</button>
+                        <button class="btn-action btn-delete" onclick="deleteTrip(${trip.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function formatDate(dateStr) {
+            if(!dateStr || dateStr === 'TBD') return 'TBD';
+            return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        function addTrip() {
+            const nameInput = document.getElementById('tripName'); const destInput = document.getElementById('dest');
+            const sDateInput = document.getElementById('sDate'); const eDateInput = document.getElementById('eDate');
+            if (!nameInput.value || !destInput.value) { alert("Please enter a trip name and destination."); return; }
+            trips.push({ id: Date.now(), name: nameInput.value, dest: destInput.value, start: sDateInput.value || 'TBD', end: eDateInput.value || 'TBD', count: 0 }); 
+            renderTrips();
+            const scrollContainer = document.getElementById('scrollContainer');
+            setTimeout(() => { scrollContainer.scrollTop = scrollContainer.scrollHeight; }, 100);
+            [nameInput, destInput, sDateInput, eDateInput].forEach(i => i.value = '');
+        }
+        function deleteTrip(id) { trips = trips.filter(t => t.id !== id); renderTrips(); }
+        renderTrips();
+
+
+        // --- ITINERARY BUILDER LOGIC (Screen 4) ---
+        const itineraryWrapper = document.getElementById('itineraryWrapper');
+        let stopCount = 0;
+        const indianCities = [ "Mumbai", "Delhi", "Jaipur", "Goa", "Udaipur", "Kolkata", "Varanasi", "Bengaluru", "Chennai", "Hyderabad", "Kochi", "Shimla", "Manali", "Rishikesh", "Leh" ];
+        const sampleActivities = [
+            { title: "Gateway of India Tour", description: "Explore Mumbai’s iconic waterfront monument.", duration: "2 Hours", price: "₹1500", image: "https://images.unsplash.com/photo-1567157577867-05ccb1388e66?q=80&w=1200&auto=format&fit=crop" },
+            { title: "Goa Beach Party", description: "Enjoy nightlife and beach vibes in Goa.", duration: "5 Hours", price: "₹3500", image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=1200&auto=format&fit=crop" },
+            { title: "Jaipur Fort Visit", description: "Discover royal forts and palaces.", duration: "4 Hours", price: "₹2200", image: "https://images.unsplash.com/photo-1599661046827-dacff0c0f09a?q=80&w=1200&auto=format&fit=crop" },
+            { title: "Varanasi Ganga Aarti", description: "Witness the spiritual evening ceremony.", duration: "2 Hours", price: "₹900", image: "https://images.unsplash.com/photo-1561361058-c24cecae35ca?q=80&w=1200&auto=format&fit=crop" }
+        ];
+
+        function updateSummary() {
+            const stops = document.querySelectorAll('.stop-card').length;
+            const activities = document.querySelectorAll('#itinerary-page .activity-card').length;
+            document.getElementById('tripInfo').innerText = `${stops} Cities • ${activities} Activities Planned`;
+        }
+
+        function createActivityCard(activity) {
+            const card = document.createElement('div'); card.className = 'activity-card';
+            card.innerHTML = `
+                <div class="activity-image" style="background-image:url('${activity.image}')"></div>
+                <div class="activity-content">
+                    <h4>${activity.title}</h4><p>${activity.description}</p>
+                    <div class="activity-meta"><span>⏱ ${activity.duration}</span><span>💰 ${activity.price}</span></div>
+                    <button class="remove-btn">Remove Activity</button>
+                </div>`;
+            card.querySelector('.remove-btn').addEventListener('click', () => { card.remove(); updateSummary(); showToast('Activity removed'); });
+            return card;
+        }
+
+        function createCityOptions(selectedCity) { return indianCities.map(city => `<option value="${city}" ${city === selectedCity ? 'selected' : ''}>${city}</option>`).join(''); }
+
+        function createStop(city = 'Mumbai') {
+            stopCount++; const stopCard = document.createElement('div'); stopCard.className = 'stop-card';
+            stopCard.innerHTML = `
+                <div class="stop-header">
+                    <div class="stop-left"><div class="drag-icon">☰</div><div><h2 class="stop-title">Stop ${stopCount} — ${city}</h2><p>Customize your India travel experience.</p></div></div>
+                    <div class="stop-actions"><button class="action-btn reorder-up">⬆ Up</button><button class="action-btn reorder-down">⬇ Down</button><button class="action-btn duplicate-btn">Duplicate</button><button class="action-btn remove-stop-btn">Remove</button></div>
+                </div>
+                <div class="stop-body">
+                    <div class="trip-form">
+                        <div class="input-group"><label>Select City</label><select class="city-select">${createCityOptions(city)}</select></div>
+                        <div class="input-group"><label>Start Date</label><input type="date"></div>
+                        <div class="input-group"><label>End Date</label><input type="date"></div>
+                    </div>
+                    <div class="activities-section">
+                        <div class="activities-header"><h3>Assigned Activities</h3><button class="add-activity-btn">+ Add Activity</button></div>
+                        <div class="activities-grid"></div>
+                    </div>
+                </div>`;
+
+            const activitiesGrid = stopCard.querySelector('.activities-grid');
+            activitiesGrid.appendChild(createActivityCard(sampleActivities[0]));
+            const citySelect = stopCard.querySelector('.city-select');
+
+            citySelect.addEventListener('change', () => { stopCard.querySelector('.stop-title').innerText = `Stop ${Array.from(document.querySelectorAll('.stop-card')).indexOf(stopCard) + 1} — ${citySelect.value}`; });
+            stopCard.querySelector('.add-activity-btn').addEventListener('click', () => { activitiesGrid.appendChild(createActivityCard(sampleActivities[Math.floor(Math.random() * sampleActivities.length)])); updateSummary(); showToast('Activity added'); });
+            stopCard.querySelector('.remove-stop-btn').addEventListener('click', () => { stopCard.remove(); updateStopNumbers(); updateSummary(); showToast('Stop removed'); });
+            stopCard.querySelector('.duplicate-btn').addEventListener('click', () => { itineraryWrapper.appendChild(createStop(citySelect.value)); updateSummary(); showToast('Stop duplicated'); });
+            stopCard.querySelector('.reorder-up').addEventListener('click', () => { const prev = stopCard.previousElementSibling; if (prev) { itineraryWrapper.insertBefore(stopCard, prev); updateStopNumbers(); showToast('Moved up'); }});
+            stopCard.querySelector('.reorder-down').addEventListener('click', () => { const next = stopCard.nextElementSibling; if (next) { itineraryWrapper.insertBefore(next, stopCard); updateStopNumbers(); showToast('Moved down'); }});
+            return stopCard;
+        }
+
+        function updateStopNumbers() { document.querySelectorAll('.stop-card').forEach((card, index) => { card.querySelector('.stop-title').innerText = `Stop ${index + 1} — ${card.querySelector('.city-select').value}`; }); }
+
+        document.getElementById('addStopBtn').addEventListener('click', () => { itineraryWrapper.appendChild(createStop('Delhi')); updateSummary(); showToast('New stop added'); });
+        
+        document.getElementById('saveTripBtn').addEventListener('click', () => {
+            showToast('Trip Saved Successfully');
+            navTo('itinerary-view-page');
+        });
+
+        itineraryWrapper.appendChild(createStop('Mumbai')); itineraryWrapper.appendChild(createStop('Goa')); updateSummary();
+
+
+        // --- ITINERARY VIEW LOGIC (Screen 5) ---
+        const viewData = [
+            {
+                day: 1, city: "Mumbai", subtitle: "Explore the city of dreams",
+                activities: [
+                    { time: "10:00 AM", title: "Gateway of India Tour", description: "Visit Mumbai’s iconic waterfront monument.", duration: "2 Hours", price: "₹1500", image: "https://images.unsplash.com/photo-1567157577867-05ccb1388e66?q=80&w=1200&auto=format&fit=crop" },
+                    { time: "4:00 PM", title: "Marine Drive Walk", description: "Enjoy the sunset and local food.", duration: "3 Hours", price: "₹1000", image: "https://images.unsplash.com/photo-1526481280695-3c4691f55e18?q=80&w=1200&auto=format&fit=crop" }
+                ]
+            },
+            {
+                day: 2, city: "Jaipur", subtitle: "Royal Rajasthan experience",
+                activities: [
+                    { time: "11:00 AM", title: "Amber Fort Visit", description: "Explore majestic forts and palaces.", duration: "4 Hours", price: "₹2500", image: "https://images.unsplash.com/photo-1477587458883-47145ed94245?q=80&w=1200&auto=format&fit=crop" }
+                ]
+            },
+            {
+                day: 3, city: "Goa", subtitle: "Beach vibes and nightlife",
+                activities: [
+                    { time: "1:00 PM", title: "Goa Beach Party", description: "Relax and enjoy beachside music.", duration: "5 Hours", price: "₹3500", image: "https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=1200&auto=format&fit=crop" }
+                ]
+            },
+            {
+                day: 4, city: "Varanasi", subtitle: "Spiritual journey",
+                activities: [
+                    { time: "6:00 PM", title: "Ganga Aarti", description: "Witness the famous evening prayer ceremony.", duration: "2 Hours", price: "₹1200", image: "https://images.unsplash.com/photo-1561361058-c24cecae35ca?q=80&w=1200&auto=format&fit=crop" }
+                ]
+            }
+        ];
+
+        const timelineView = document.getElementById('timelineView');
+        const calendarView = document.getElementById('calendarView');
+        const packingView = document.getElementById('packingView');
+        const timelineBtn = document.getElementById('timelineBtn');
+        const calendarBtn = document.getElementById('calendarBtn');
+        const packingBtn = document.getElementById('packingBtn');
+
+        function renderTimeline() {
+            timelineView.innerHTML = '';
+            viewData.forEach(day => {
+                const activitiesHTML = day.activities.map(activity => `
+                    <div class="activity-block">
+                        <div class="activity-image" style="background-image:url('${activity.image}')"></div>
+                        <div class="activity-content">
+                            <div class="time-pill">${activity.time}</div>
+                            <h3>${activity.title}</h3>
+                            <p>${activity.description}</p>
+                            <div class="activity-meta"><span>⏱ ${activity.duration}</span><span>💰 ${activity.price}</span></div>
+                            <button class="action-btn remove-view-activity">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                const card = document.createElement('div'); card.className = 'day-card';
+                card.innerHTML = `
+                    <div class="day-header">
+                        <div class="day-title"><h2>Day ${day.day} — ${day.city}</h2><p>${day.subtitle}</p></div>
+                        <div class="city-badge">India</div>
+                    </div>
+                    <div class="activities-wrapper">${activitiesHTML}</div>
+                `;
+                timelineView.appendChild(card);
+            });
+            attachRemoveEvents();
+        }
+
+        function renderCalendar() {
+            calendarView.innerHTML = '';
+            viewData.forEach(day => {
+                const activities = day.activities.map(activity => `
+                    <div class="mini-activity">
+                        <strong>${activity.title}</strong><span>${activity.time} • ${activity.price}</span>
+                    </div>
+                `).join('');
+                
+                const card = document.createElement('div'); card.className = 'calendar-card';
+                card.innerHTML = `<h3>Day ${day.day} — ${day.city}</h3><p>${day.subtitle}</p>${activities}`;
+                calendarView.appendChild(card);
+            });
+        }
+
+        function attachRemoveEvents() {
+            document.querySelectorAll('.remove-view-activity').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.activity-block').remove();
+                    showToast('Activity Removed');
+                });
+            });
+        }
+
+        renderTimeline(); renderCalendar();
+
+        function switchView(view) {
+            timelineView.style.display = view === 'timeline' ? 'flex' : 'none';
+            calendarView.style.display = view === 'calendar' ? 'grid' : 'none';
+            packingView.style.display = view === 'packing' ? 'flex' : 'none';
+            
+            timelineBtn.classList.toggle('active', view === 'timeline');
+            calendarBtn.classList.toggle('active', view === 'calendar');
+            packingBtn.classList.toggle('active', view === 'packing');
+        }
+
+        timelineBtn.addEventListener('click', () => switchView('timeline'));
+        calendarBtn.addEventListener('click', () => switchView('calendar'));
+        packingBtn.addEventListener('click', () => switchView('packing'));
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const data = JSON.stringify(viewData, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'india-itinerary.json';
+            a.click(); URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('publishBtn').addEventListener('click', () => {
+            showToast('Itinerary Published Successfully! 🌍');
+        });
+
+
+        // --- PACKING CHECKLIST LOGIC ---
+        let checklistData = [
+            { id: 1, text: "Passport & Visa", category: "documents", packed: false },
+            { id: 2, text: "Phone Charger & Power Bank", category: "electronics", packed: false },
+            { id: 3, text: "Comfortable Walking Shoes", category: "clothing", packed: false },
+            { id: 4, text: "Light Cotton Shirts for Humidity", category: "clothing", packed: false }
+        ];
+
+        let currentPackFilter = 'all';
+
+        function renderPackList() {
+            const container = document.getElementById('checklist-container');
+            container.innerHTML = '';
+            const filteredData = checklistData.filter(item => currentPackFilter === 'all' || item.category === currentPackFilter);
+
+            filteredData.forEach(item => {
+                const li = document.createElement('li');
+                li.className = `checklist-item ${item.packed ? 'packed' : ''}`;
+                li.innerHTML = `
+                    <div class="item-left">
+                        <input type="checkbox" ${item.packed ? 'checked' : ''} onchange="togglePacked(${item.id})">
+                        <div>
+                            <span class="item-text">${item.text}</span>
+                            <span class="badge ${item.category}">${capitalize(item.category)}</span>
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="deletePackItem(${item.id})" title="Remove item">🗑️</button>
+                `;
+                container.appendChild(li);
+            });
+            updatePackProgress();
+        }
+
+        function addPackItem() {
+            const inputField = document.getElementById('pack-item-name');
+            const categoryField = document.getElementById('pack-item-category');
+            const text = inputField.value.trim();
+            if (text === '') { showToast("Please enter an item."); return; }
+            checklistData.push({ id: Date.now(), text: text, category: categoryField.value, packed: false });
+            inputField.value = ''; inputField.focus();
+            renderPackList();
+            showToast("Item added to checklist.");
+        }
+
+        function handlePackKeyPress(event) { if (event.key === 'Enter') addPackItem(); }
+        function togglePacked(id) {
+            const item = checklistData.find(item => item.id === id);
+            if (item) { item.packed = !item.packed; renderPackList(); }
+        }
+        function deletePackItem(id) { checklistData = checklistData.filter(item => item.id !== id); renderPackList(); }
+        function resetChecklist() {
+            if(confirm("Reset checklist for a new trip?")) { 
+                checklistData.forEach(item => item.packed = false); 
+                renderPackList(); 
+                showToast("Checklist reset.");
+            }
+        }
+        function setPackFilter(category, btn) {
+            currentPackFilter = category;
+            const buttons = document.querySelectorAll('#pack-filter-container .filter-pill');
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderPackList();
+        }
+        function updatePackProgress() {
+            const total = checklistData.length;
+            const packed = checklistData.filter(item => item.packed).length;
+            document.getElementById('progress-text').innerText = `${packed} / ${total} items packed`;
+        }
+        function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
+
+        renderPackList();
+        
+        // --- PROFILE LOGIC (Screen 6) ---
+        const destinationsList = document.getElementById('destinations-list');
+        let profileDestinations = [{ id: 1, name: 'Kyoto, Japan' }, { id: 2, name: 'Santorini, Greece' }];
+
+        function renderProfileDestinations() {
+            if (!destinationsList) return;
+            destinationsList.innerHTML = '';
+            profileDestinations.forEach(dest => {
+                const li = document.createElement('li');
+                li.className = 'destination-item';
+                li.innerHTML = `<span>${dest.name}</span><button class="remove-dest" onclick="removeProfileDestination(${dest.id})">&times;</button>`;
+                destinationsList.appendChild(li);
+            });
+        }
+
+        window.removeProfileDestination = (id) => {
+            profileDestinations = profileDestinations.filter(d => d.id !== id);
+            renderProfileDestinations();
+            showToast("Location removed");
+        };
+
+        renderProfileDestinations();
+
+        // Initialize Back button state
+        updateBackButtonVisibility();
+
+    </script>
+</body>
+</html>
